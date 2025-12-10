@@ -1491,6 +1491,33 @@
                     {{/each}}
                 </div>
                 {{/if}}
+                {{#if (compare creditosNoAdministrados.length '>' 0) }}
+                <div class="unmanaged-credit-section">
+                    <div class="yellow-heading grey-background">Créditos No Administrados</div>
+                    <table class="social-cuota grey-text centered no-sides">
+                        <thead>
+
+                            <tr class="grey-border no-sides">
+
+                                <th>Fecha Préstamo</th>
+                                <th>Proveedor Financ.</th>
+                                <th>Capital</th>
+                                <th>Plazo</th>
+                                <th>Valor Cuota</th>
+                            </tr>
+                        </thead>
+                        {{#each creditosNoAdministrados as |credito|}}
+                        <tr class="grey-border no-sides">
+                            <td>{{formatDate credito.Fecha_Prestamo}}</td>
+                            <td>{{credito.Proveedor_Financiero}}</td>
+                            <td>${{format credito.Capital}}</td>
+                            <td>{{credito.Plazo}}</td>
+                            <td>${{format credito.ValorCuota}}</td>
+                        </tr>
+                        {{/each}}
+                    </table>
+                </div>
+                {{/if}}
 
                 <div class="details">
                     <h3 class="centered">INFORMACIÓN ADICIONAL</h3>
@@ -1999,6 +2026,33 @@
 
                     </table>
                     {{/each}}
+                </div>
+                {{/if}}
+                {{#if (compare creditosNoAdministrados.length '>' 0) }}
+                <div class="unmanaged-credit-section">
+                    <div class="yellow-heading grey-background">Créditos No Administrados</div>
+                    <table class="social-cuota grey-text centered no-sides">
+                        <thead>
+
+                            <tr class="grey-border no-sides">
+
+                                <th>Fecha Préstamo</th>
+                                <th>Proveedor Financ.</th>
+                                <th>Capital</th>
+                                <th>Plazo</th>
+                                <th>Valor Cuota</th>
+                            </tr>
+                        </thead>
+                        {{#each creditosNoAdministrados as |credito|}}
+                        <tr class="grey-border no-sides">
+                            <td>{{formatDate credito.Fecha_Prestamo}}</td>
+                            <td>{{credito.Proveedor_Financiero}}</td>
+                            <td>${{format credito.Capital}}</td>
+                            <td>{{credito.Plazo}}</td>
+                            <td>${{format credito.ValorCuota}}</td>
+                        </tr>
+                        {{/each}}
+                    </table>
                 </div>
                 {{/if}}
                 <div class="details">
