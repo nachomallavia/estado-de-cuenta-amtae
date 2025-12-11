@@ -764,6 +764,19 @@
                     }
                 }
             );
+            Handlebars.registerHelper(
+                'isRealReentry',
+                function (fechaAlta, fechaAsociado, fechaBaja) {
+                    // Solo es reingreso si hay fecha de baja y la fecha de asociado es diferente a la fecha de alta
+                    if (!fechaAsociado || !fechaBaja) {
+                        return false;
+                    }
+                    // Comparar fechas (convertir a timestamp para comparación)
+                    const alta = new Date(fechaAlta).getTime();
+                    const asociado = new Date(fechaAsociado).getTime();
+                    return alta !== asociado;
+                }
+            );
         </script>
         <script>
             async function fetchData(id) {
@@ -875,15 +888,15 @@
 
             /**
              * Filtra serviciosRepositorio basado en el estado de los adherentes.
+             * Normaliza nombres y elimina duplicados en ambos estados (resumido y ampliado).
              * 
-             * Lógica de exclusión (solo para estado resumido):
+             * Lógica de exclusión:
              * - Excluye adherentes que cumplan TODOS estos criterios:
              *   1. Dados de baja (Fecha_Fin != null)
              *   2. NO se reincorporaron después de la baja
              *   3. NO tienen mora (Saldo > 0 en serviciosRepositorio)
-             *   4. La baja fue hace más de 6 meses
-             * 
-             * Para estado ampliado, no aplica ningún filtro de adherentes.
+             *   4. Estado resumido: La baja fue hace más de 6 meses
+             *      Estado ampliado: Cualquier baja (sin importar cuándo)
              * 
              * @param {Object} data - Datos del socio con servicios y serviciosRepositorio
              * @param {Boolean} isResumed - True para estado resumido, false para ampliado
@@ -895,12 +908,6 @@
                 
                 // Si no hay servicios para filtrar, retornar data tal cual
                 if (!services || services.length === 0) {
-                    return data;
-                }
-                
-                // Si es estado ampliado, no aplicar filtrado por adherentes
-                if (!isResumed) {
-                    data.serviciosRepositorio = services;
                     return data;
                 }
                 
@@ -962,9 +969,15 @@
                             return; // No excluir, tiene mora
                         }
                         
-                        // Verificar si la baja fue hace más de 6 meses
-                        if (fechaBaja < sixMonthsAgo) {
-                            // Excluir este adherente
+                        // Para estado resumido: solo excluir si la baja fue hace más de 6 meses
+                        // Para estado ampliado: excluir todos los adherentes dados de baja sin deuda
+                        if (isResumed) {
+                            // Resumido: verificar si la baja fue hace más de 6 meses
+                            if (fechaBaja < sixMonthsAgo) {
+                                adherentesToExclude.add(nombreAdherente);
+                            }
+                        } else {
+                            // Ampliado: excluir si está dado de baja (sin importar cuándo)
                             adherentesToExclude.add(nombreAdherente);
                         }
                     }
@@ -989,7 +1002,12 @@
                     
                     // Mantener el registro (incluso con Saldo = 0), eliminando solo duplicados exactos
                     if (!uniqueServices.has(key)) {
-                        uniqueServices.set(key, service);
+                        // Guardar el servicio con el nombre normalizado
+                        const normalizedService = {
+                            ...service,
+                            Adherente: adherenteName
+                        };
+                        uniqueServices.set(key, normalizedService);
                     }
                 });
                 
@@ -1110,8 +1128,9 @@
                                 socio.socio.Fecha_Alta}}{{/if}}
                             </td>
                             <td colspan="" class="box-data">
-                                {{#if socio.socio.Fecha_Asociado}} {{formatDate
-                                socio.socio.Fecha_Asociado}} {{/if}}
+                                {{#if (isRealReentry socio.socio.Fecha_Alta socio.socio.Fecha_Asociado socio.socio.Fecha_Baja)}}
+                                    {{formatDate socio.socio.Fecha_Asociado}}
+                                {{/if}}
                             </td>
                             <td colspan="" class="box-data">
                                 {{#if socio.socio.Fecha_Baja}} {{formatDate
@@ -1626,8 +1645,9 @@
                                 socio.socio.Fecha_Alta}}{{/if}}
                             </td>
                             <td colspan="" class="box-data">
-                                {{#if socio.socio.Fecha_Asociado}} {{formatDate
-                                socio.socio.Fecha_Asociado}} {{/if}}
+                                {{#if (isRealReentry socio.socio.Fecha_Alta socio.socio.Fecha_Asociado socio.socio.Fecha_Baja)}}
+                                    {{formatDate socio.socio.Fecha_Asociado}}
+                                {{/if}}
                             </td>
                             <td colspan="" class="box-data">
                                 {{#if socio.socio.Fecha_Baja}} {{formatDate
@@ -1903,7 +1923,7 @@
                         {{#each servicios as |adherente|}}
                           {{#if @first}}
                           {{else}}
-
+                            {{#if (isNotCanceled adherente.Fecha_Fin adherente.Saldo)}}
                                 <tr class="grey-border no-sides">
                                     <td>{{adherente.Nombre}}</td>
                                     <td>{{adherente.NroDoc}}</td>
@@ -1913,6 +1933,7 @@
                                     {{!-- <td>{{formatDate adherente.Fecha_Fin}}</td> --}}
                                     <td>{{adherente.MC}}</td>
                                 </tr>
+                            {{/if}}
                          {{/if}}
                         {{/each}}
                     </table>
